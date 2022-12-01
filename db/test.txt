@@ -1,1 +1,422 @@
-test
+import mysql.connector
+from mysql.connector import errorcode
+import time
+import random
+
+# ----------------------- DEFINICIÓN DE FUNCIONES EMPLEADAS EN LA EJECUCION DEL BLOQUE PRINCIPAL -----------------
+
+# FUNCION PARA ENCRIPTAR - DESENCRIPTAR
+# Cada caracter de la cadena de entrada, lo cambia por su simétrico (respecto a la posición) en las cadenas de
+# sustitución: 'cadena_sust' y 'numero_sust'. Si el caracter no se encuentra en ninguna de las dos, lo deja intacto.
+# <cadena> es el mensaje que se desea tratar. Debe ir entrecomillado.
+# <opcion> define la acción a realizar. Será [0] para encriptar y [1] para desencriptar.
+
+def encriptar(cadena):
+    cadena_sust = 'aáAÁbBcCdDeéEÉfFgGhHiíIÍjJkKlLmMnNñÑoóOÓpPqQrRsStTuüúUÜÚvVwWxXyYzZ'
+    numero_sust = '0123456789'
+    cadena_salida = ''
+    for caracter in cadena:  # recorre los caracteres de cadena
+        if (caracter not in cadena_sust) and (caracter not in numero_sust):
+            caracter = caracter
+        elif caracter in cadena_sust:
+            pos = cadena_sust.find(caracter)
+            caracter = cadena_sust[len(cadena_sust)-pos - 1]
+        elif caracter in numero_sust:
+            pos = numero_sust.find(caracter)
+            caracter = numero_sust[len(numero_sust) - pos - 1]
+        cadena_salida += caracter  # construye la cadena de salida con los caracteres sustituidos
+    return cadena_salida  # devuelve la cadena tratada
+
+# FUNCIÓN PARA GENERAR CONTRASEÑAS
+# <long> es la longitud de la contraseña deseada. Si no se incluye, se toma 9 por defecto.
+# <caracteres> es la cadena con carateres que han de emplearse en la generación de la contraseña.
+#  Si no se incluye, se usa una cadena por defecto.
+
+def new_password2(long=9, caracteres='abcdefghijklmnopqrstuvwxyz0123456789.-@#!*%'):
+    password = ''
+    for i in range(0, long-1):
+        caracter = random.choice(caracteres)
+        tipo = random.choice('lu')
+        if tipo == 'l':
+            password += caracter.lower()
+        elif tipo == 'u':
+            password += caracter.upper()
+    return password
+
+# FUNCIÓN DE COMPROBAR CONTRASEÑA
+# Esta función comprueba las características de la contraseña (cadena de entrada) y devuelve una variable booleana que
+# será True si la cadena cumple los requisitos pertinentes y false si no.
+#<cadena> es la cadena de caracteres cuyas características se comprueban
+def comprueba_nueva_pass(cadena):
+    contrasenia_buena = False
+    numeros = 0
+    mayusculas = 0
+    caracteres = 0
+    for x in cadena:
+        if x in '0123456789':
+            numeros += 1
+        elif x in '!@*%':
+            caracteres += 1
+        elif x == x.upper():
+            mayusculas += 1
+    if numeros >= 2 and caracteres >= 1 and mayusculas >= 2:
+        contrasenia_buena = True
+    return contrasenia_buena  # devuelve booleano que es True si la contraseña es buena. False si no.
+
+# ------------------------------------------- CONEXIÓN CON LA BASE DE DATOS ------------------------------------------
+
+# Para conectarse a la bbd, se presentan dos opciones:
+# La primera, que toma como configuración los datos del enunciado del pdf.
+print('---------------------------- CONEXIÓN CON DATABASE ----------------------------\n')
+connect_predeterminada = input('Si desea conectarse a la base de datos configurada por defecto, introduzca [S].\n'
+                               'En caso contrario, introduzca [N] y se le pedirán los datos necesarios: ').lower()
+while connect_predeterminada not in 'sn' and len(connect_predeterminada) != 1:              ### NO PILLA LA N!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    connect_predeterminada = input('Entrada incorrecta.\n'
+                                   'Introduzca [N] o [S]:')
+
+# Conexion por defecto.
+
+if connect_predeterminada == 's':
+    config = {
+        'host': 'localhost',
+        'user': 'root',
+        'passwd': '12345678',                   ################### MODIFICAR PASSWORD SI SE REQUIERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        'db': 'llavero',
+        'auth_plugin': 'mysql_native_password'
+    }  # configuración de la conexión predeterminada. es la que figura en el pdf del curso
+    try:
+        miConexion = mysql.connector.connect(**config)
+    # Si no logra conectarse, indica el motivo
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print('\x1b[1;31m' + 'ERROR: ' + '\033[;m' + 'El nombre de usuario o la contraseña son incorrectos.')
+            quit()
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print('\x1b[1;31m' + 'ERROR: ' + '\033[;m' + 'La base de datos no existe.')
+            quit()
+        else:
+            print(err)
+            quit()
+
+# La segunda, se conecta a partir de los datos introducidos manualemente.
+
+elif connect_predeterminada == 'n':
+    # Se piden los datos necesarios para conectarse a la base de datos
+    print('A continuación, introduzca los datos de la base de datos a la que se conectará la aplicación:\n')
+    host = input(' * host: ')
+    usuario_bbdd = input(' * user: ')
+    password_bbdd = input(' * password: ')
+    nombre_bbdd = input(' * db: ')
+    # Se crea la conexión
+    config = {
+        'host': host,
+        'user': usuario_bbdd,
+        'passwd': password_bbdd,
+        'db': nombre_bbdd,
+        'auth_plugin': 'mysql_native_password'
+    }  # configuración de acceso a la base de datos
+    # Se conecta a la base de datos
+    while True:
+        # Se crea la conexión
+        config = {
+            'host': host,
+            'user': usuario_bbdd,
+            'passwd': password_bbdd,
+            'db': nombre_bbdd,
+            'auth_plugin': 'mysql_native_password'}
+        try:
+            miConexion = mysql.connector.connect(**config)
+            break
+        # Si no logra conectarse, indica el motivo y, si en algunos casos, vuelve a pedir los datos que
+        # producian el error.
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print('\x1b[1;31m' + 'ERROR: ' + '\033[;m' + 'El nombre de usuario o la contraseña son incorrectos. '
+                                                             'Pruebe a introducirlos de nuevo.')
+                usuario_bbdd = input(' user: ')
+                password_bbdd = input(' * password: ')
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print('\x1b[1;31m' + 'ERROR: ' + '\033[;m' + 'La base de datos no existe. Pruebe con otro nombre:')
+                nombre_bbdd = input(' * db: ')
+            else:
+                print(err)
+                quit()
+
+# Si sale del bucle anterior, la conexión se ha realizado correctamente
+print('')
+print('\x1b[1;32m' + 'La conexión se ha efectuado correctamente.' + '\033[;m')
+
+# Se activa la conexión
+cur = miConexion.cursor()
+
+
+# ---------------------------------------------------- MENU INICIAL --------------------------------------------------
+
+while True:
+    # Variable auxiliar para volver al menú en caso de haberse equivocado.
+    atras = False
+    # Menu de la aplicación
+    print('\n'+'\x1b[1;34m'+'------------------------ MENU DE PRINCIPAL ------------------------',
+          '\033[;m', end=time.sleep(0.3))
+    print('\x1b[1;36m'+'-           [1] -> Guardar una nueva contraseña                   -', end=time.sleep(0.3))
+    print('-           [2] -> Modificar una contraseña existente             -', end=time.sleep(0.3))
+    print('-           [3] -> Eliminar una contraseña existente              -', end=time.sleep(0.3))
+    print('-           [4] -> Buscar una contraseña almacenada               -', end=time.sleep(0.3))
+    print('-           [5] -> Listar contraseñas existentes                  -', end=time.sleep(0.3))
+    print('-           [6] -> Salir de la aplicación                         -'+'\033[;m', end=time.sleep(0.3))
+    print('\x1b[1;34m'+'-------------------------------------------------------------------'+
+          '\033[;m'+'\n', end=time.sleep(0.3))
+
+    # Pedir acción y repetir pregunta si el formato no es correcto
+    while True:
+        accion = input('Seleccione la acción que desea realizar: ')
+        if accion in '123456' and len(accion) == 1:
+            break
+        else:
+            print('La acción introducida no existe.')
+    print('\n')
+
+    # Si la opción es 1
+    if accion == '1':
+        # Pide el nombre de la nueva contraseña. Si ya existe, vuelve a preguntar
+        existe_contrasenia = True  # booleana para comprobar la existencia de la nueva contraseña en la bbdd
+        while existe_contrasenia is True:
+            nombre = input('Introduzca el nombre con el que quiere almacenar la nueva '
+                           'contraseña \n([0] para volver al menú): ')
+            if nombre == '0':
+                atras = True
+                break
+            # Comprueba que el nombre no esta en la BBDD
+            consulta = ('SELECT COUNT(aplicacion) coincidencias FROM user_pass WHERE aplicacion = %s')  ######  AÑADIR USUARIO!!!!!!!!!!!
+            cur.execute(consulta, (nombre,))
+            for coincidencias in cur:
+                if coincidencias[0] == 0:
+                    existe_contrasenia = False
+                else:
+                    print('El nombre introducido ya se encuentra asociado a una contraseña almacenada.')
+        if atras is True:
+            continue
+
+        # Pide o genera nueva contraseña
+        while True:
+            generar = input('Desea generar una contraseña aleatoria? [Si] o [No]: ').lower()
+            if generar == 'si':
+                while True:
+                    nueva_contrasenia = new_password2()
+                    if comprueba_nueva_pass(nueva_contrasenia) is True:
+                        break
+                print('\nContraseña: ', '\x1b[1;34m' + nueva_contrasenia + '\033[;m')
+                break
+            elif generar == 'no':
+                nueva_contrasenia = input('Introduzca la nueva contraseña: ')
+                if comprueba_nueva_pass(nueva_contrasenia) is False:
+                    print('Esta no es una contraseña segura. Para serlo debería cumplir los siguientes requisitos:')
+                    print(' - Longitud de, al menos, 9 caracteres')
+                    print(' - Como mínimo dos números')
+                    print(' - Como mínimo 2 mayusculas')
+                    print(' - Al menos un caracter especial (!@*%)')
+                break
+            else:
+                print('Respuesta incorrecta.')
+
+        # Encripta la nueva contraseña
+        nueva_contrasenia_encriptada = encriptar(nueva_contrasenia)
+        # Inserta la nueva contraseña en la base de datos
+        insertar = ('INSERT INTO user_pass (aplicacion, contraseña) VALUES (' + '%s, %s)')
+        nuevos_datos = (nombre, nueva_contrasenia_encriptada,)                 ################  INTRODUCIR USUARIO!!!!!!!!!!!!!!!!!!!
+        cur.execute(insertar, nuevos_datos)
+        miConexion.commit()
+        time.sleep(0.5)
+        print('\x1b[1;35m'+'Guardando', end='')
+        time.sleep(1)
+        print('.', end='')
+        time.sleep(1)
+        print('.', end='')
+        time.sleep(1)
+        print('.'+'\033[;m', end='')
+        time.sleep(1)
+        print('\nLa contraseña', nombre, 'se ha guardado con exito.\n')
+        time.sleep(2)
+
+    # Si la opción es 2
+        # Modificar contraseña
+    elif accion == '2':
+        # Pide el nombre de la contraseña. Si no existe, vuelve a preguntar
+        existe_contrasenia = False  # booleana para comprobar la existencia de la nueva contraseña en la bbdd
+        while existe_contrasenia is False:
+            nombre = input('Introduzca el nombre de la contraseña que quiere modificar \n([0] para volver al menú): ')
+            if nombre == '0':
+                atras = True
+                break
+            # Comprueba que el nombre no esta en la BBDD
+            consulta = ('SELECT COUNT(aplicacion) coincidencias FROM user_pass WHERE aplicacion = %s')
+            cur.execute(consulta, (nombre,))                                   ################  INTRODUCIR USUARIO!!!!!!!!!!!!!!!!!!!
+            for coincidencias in cur:
+                if coincidencias[0] != 0:
+                    existe_contrasenia = True
+                else:
+                    print('No existe ninguna contraseña con el nombre introducido.')
+        if atras is True:
+            continue
+
+        # Pide o genera nueva contraseña
+        while True:
+            generar = input('Desea generar una contraseña aleatoria? [Si] o [No]: ').lower()
+            if generar == 'si':
+                while True:
+                    nueva_contrasenia = new_password2()
+                    if comprueba_nueva_pass(nueva_contrasenia) is True:
+                        break
+                print('\nContraseña: ', '\x1b[1;34m' + nueva_contrasenia + '\033[;m')
+                break
+            elif generar == 'no':
+                nueva_contrasenia = input('Introduzca la nueva contraseña: ')
+                if comprueba_nueva_pass(nueva_contrasenia) is False:
+                    print('Esta no es una contraseña segura. Para serlo debería cumplir los siguientes requisitos:')
+                    print(' - Longitud de, al menos, 9 caracteres')
+                    print(' - Como mínimo dos números')
+                    print(' - Como mínimo 2 mayusculas')
+                    print(' - Al menos un caracter especial (!@*%)')
+                break
+            else:
+                print('Respuesta incorrecta.')
+        # Encripta la nueva contraseña
+        nueva_contrasenia_encriptada = encriptar(nueva_contrasenia)
+        # Modifica el registro
+        consulta_antigua_contrasenia = (
+            'SELECT contraseña FROM user_pass WHERE aplicacion = %s')
+        cur.execute(consulta_antigua_contrasenia, (nombre,))                     ################  INTRODUCIR USUARIO!!!!!!!!!!!!!!!!!!!
+        for contrasenia in cur:
+            antigua_contrasenia = contrasenia[0]
+        modificacion = ('UPDATE user_pass SET contraseña = %s WHERE contraseña = %s')
+        cur.execute(modificacion, (nueva_contrasenia_encriptada, antigua_contrasenia,))
+        miConexion.commit()
+        time.sleep(0.5)
+        print('\x1b[1;35m'+'Modificando', end='')
+        time.sleep(1)
+        print('.', end='')
+        time.sleep(1)
+        print('.', end='')
+        time.sleep(1)
+        print('.'+'\033[;m', end='')
+        time.sleep(1)
+        print('\nLa contraseña', nombre, 'se ha modificado con exito.\n')
+        time.sleep(2)
+
+    # Si la opción es 3
+
+        # Eliminar contraseña
+    elif accion == '3':
+        time.sleep(1)
+        # Pide el nombre de la contraseña. Si no existe, vuelve a preguntar
+        existe_contrasenia = False  # booleana para comprobar la existencia de la nueva contraseña en la bbdd
+        while existe_contrasenia is False:
+            nombre = input('Introduzca el nombre de la contraseña que quiere borrar \n([0] para volver al menú): ')
+            if nombre == '0':
+                atras = True
+                break
+            # Comprueba que el nombre no esta en la BBDD
+            consulta = ('SELECT COUNT(aplicacion) coincidencias FROM user_pass WHERE aplicacion = %s')
+            cur.execute(consulta, (nombre,))                     ###################INSERTAR USUARIO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+            for coincidencias in cur:
+                if coincidencias[0] != 0:
+                    existe_contrasenia = True
+                else:
+                    print('No existe ninguna contraseña con el nombre introducido.')
+        if atras is True:
+            continue
+
+        # Preguntar si esta seguro de su acción.
+        segura = input('¿Estás seguro de que quieres eliminar?[S/N]: ').lower()
+        while segura != 'n' and 's':                                                   ### NO PILLA LA S!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            print('La respuesta no es válida. Por favor vuelva a intentarlo.')
+            segura = input('¿Estás seguro de que quieres eliminar?[S/N]: ').lower()
+            time.sleep(1)
+            if segura == 'n':
+                atras = True
+                break
+            elif segura == 's':
+                # Borra el registro
+                borrado = ('DELETE FROM user_pass WHERE aplicacion = %s')
+                cur.execute(borrado, (nombre,))                     ###################INSERTAR USUARIO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+                miConexion.commit()
+                time.sleep(0.5)
+                print('\x1b[1;35m'+'Eliminando', end='')
+                time.sleep(1)
+                print('.', end='')
+                time.sleep(1)
+                print('.', end='')
+                time.sleep(1)
+                print('.'+'\033[;m', end='')
+                time.sleep(1)
+                print('\nLa contraseña', nombre, 'se ha eliminado con exito.\n')
+                time.sleep(2)
+        if atras is True:
+            continue
+    # Si la opción es 4
+    elif accion == '4':
+        time.sleep(1)
+        # Pide el nombre de la contraseña. Si no existe, vuelve a preguntar
+        existe_contrasenia = False  # booleana para comprobar la existencia de la nueva contraseña en la bbdd
+        while existe_contrasenia is False:
+            nombre = input('Introduzca el nombre de la contraseña que quiere buscar \n([0] para volver al menú: ')
+            if nombre == '0':
+                atras = True
+                break
+            # Comprueba que el nombre no esta en la BBDD
+            consulta = ('SELECT COUNT(aplicacion) coincidencias FROM user_pass WHERE aplicacion = %s')
+            cur.execute(consulta, (nombre,))                          ###########################INSERTAR USUARIOOOOO!!!!!!!!!!!!!!!!!!!!1!!!
+            for coincidencias in cur:
+                if coincidencias[0] != 0:
+                    existe_contrasenia = True
+                else:
+                    print('No existe ninguna contraseña con el nombre introducido.')
+        if atras is True:
+            continue
+
+        # Hace la consulta con el nombre especificado
+        consulta = ('SELECT contraseña FROM user_pass WHERE aplicacion = %s')
+        cur.execute(consulta, (nombre,))                               ###########################INSERTAR USUARIOOOOO!!!!!!!!!!!!!!!!!!!!1!!!
+        time.sleep(0.5)
+        print('\x1b[1;35m'+'Buscando', end='')
+        time.sleep(1)
+        print('.', end='')
+        time.sleep(1)
+        print('.', end='')
+        time.sleep(1)
+        print('.'+'\033[;m', end='')
+        time.sleep(1)
+        for contrasenia in cur:
+            print('\nLa contraseña', '\x1b[1;34m' + nombre +
+                  '\033[;m', 'es: ', '\x1b[1;34m' + encriptar(contrasenia[0]) + '\033[;m')
+        print('')
+        # time.sleep(2)
+        input('Pulse [Enter] para continuar.\n')
+
+    # Si la opción es 5
+
+    elif accion == '5':
+        time.sleep(1)
+        print('Se encuentran almacenadas las siguientes contraseñas:')
+        # Consulta de la tabla
+        cur.execute('SELECT aplicacion FROM user_pass')                ###########################INSERTAR USUARIOOOOO!!!!!!!!!!!!!!!!!!!!1!!!
+        # Imprime la primera columna, que es la buscada
+        for aplicacion in cur:
+            print('*', aplicacion[0])
+        print('')
+        # time.sleep(2)
+        input('Pulse [Enter] para continuar.\n')
+
+    # Si la opción es 6
+    elif accion == '6':
+        seguro = input('¿Estás seguro de que quieres salir?[S/N]: ').lower()
+        while seguro != 's' and 'n':
+            print('La respuesta no es válida. Por favor vuelva a intentarlo.')
+            seguro = input('¿Estás seguro de que quieres salir?[S/N]: ').lower()
+        time.sleep(1)
+        if seguro == 's':
+            print('Hasta pronto.')
+            miConexion.close()
+            quit()
+        elif seguro == 'n':
+            continue
