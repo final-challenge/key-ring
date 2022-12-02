@@ -70,7 +70,7 @@ def comprueba_nueva_pass(cadena):
 print('---------------------------- CONEXIÓN CON DATABASE ----------------------------\n')
 connect_predeterminada = input('Si desea conectarse a la base de datos configurada por defecto, introduzca [S].\n'
                                'En caso contrario, introduzca [N] y se le pedirán los datos necesarios: ').lower()
-while connect_predeterminada not in 'sn' and len(connect_predeterminada) != 1:              ### NO PILLA LA N!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+while connect_predeterminada not in 'sn' and len(connect_predeterminada) != 1:
     connect_predeterminada = input('Entrada incorrecta.\n'
                                    'Introduzca [N] o [S]:')
 
@@ -328,29 +328,29 @@ while True:
 
         # Preguntar si esta seguro de su acción.
         segura = input('¿Estás seguro de que quieres eliminar?[S/N]: ').lower()
-        while segura != 'n' and 's':                                                   ### NO PILLA LA S!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        while segura != 'n' and segura != 's':
             print('La respuesta no es válida. Por favor vuelva a intentarlo.')
             segura = input('¿Estás seguro de que quieres eliminar?[S/N]: ').lower()
             time.sleep(1)
-            if segura == 'n':
-                atras = True
-                break
-            elif segura == 's':
-                # Borra el registro
-                borrado = ('DELETE FROM user_pass WHERE aplicacion = %s')
-                cur.execute(borrado, (nombre,))                     ###################INSERTAR USUARIO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-                miConexion.commit()
-                time.sleep(0.5)
-                print('\x1b[1;35m'+'Eliminando', end='')
-                time.sleep(1)
-                print('.', end='')
-                time.sleep(1)
-                print('.', end='')
-                time.sleep(1)
-                print('.'+'\033[;m', end='')
-                time.sleep(1)
-                print('\nLa contraseña', nombre, 'se ha eliminado con exito.\n')
-                time.sleep(2)
+        if segura == 'n':
+            atras = True
+            break
+        elif segura == 's':
+            # Borra el registro
+            borrado = ('DELETE FROM user_pass WHERE aplicacion = %s')
+            cur.execute(borrado, (nombre,))                     ###################INSERTAR USUARIO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+            miConexion.commit()
+            time.sleep(0.5)
+            print('\x1b[1;35m'+'Eliminando', end='')
+            time.sleep(1)
+            print('.', end='')
+            time.sleep(1)
+            print('.', end='')
+            time.sleep(1)
+            print('.'+'\033[;m', end='')
+            time.sleep(1)
+            print('\nLa contraseña', nombre, 'se ha eliminado con exito.\n')
+            time.sleep(2)
         if atras is True:
             continue
     # Si la opción es 4
