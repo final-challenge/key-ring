@@ -34,7 +34,9 @@ def signup():
             hashed_pwd = hashlib.sha256(enc_pwd).hexdigest()
 
             # Crear Usuario  
-            create_user(user_email, hashed_pwd)
+            q = input("Introduzca su pregunta de seguridad. (Para desbloquear la cuenta en caso de bloqueo): ")
+            a = input("Introduzca su respuesta a la pregunta de seguridad: ")
+            create_user(user_email, hashed_pwd, q, a)
             print('Su usuario se ha creado con éxito')
             break
 
